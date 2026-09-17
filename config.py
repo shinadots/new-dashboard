@@ -3,10 +3,10 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-DATABASE_URL = os.environ["DATABASE_URL"]
+DATABASE_URL = os.environ["DATABASE_URL"]  # connection string do Supabase do Dashboard-main
 
-WINDSOR_API_KEY = os.environ["WINDSOR_API_KEY"]
-
+# Windsor não entra mais aqui — grava direto em meta_ads/google_ads no Supabase.
+# GOOGLE_ADS_* abaixo só é necessário se algum dia precisar do services/google_ads.py.
 GOOGLE_ADS_CLIENT_ID = os.environ.get("GOOGLE_ADS_CLIENT_ID")
 GOOGLE_ADS_CLIENT_SECRET = os.environ.get("GOOGLE_ADS_CLIENT_SECRET")
 GOOGLE_ADS_DEVELOPER_TOKEN = os.environ.get("GOOGLE_ADS_DEVELOPER_TOKEN")

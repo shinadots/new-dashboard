@@ -1,11 +1,12 @@
 import logging
 from datetime import date as date_cls
 
-from db import upsert_ad_performance, upsert_funnel_snapshot, log_sync
-from services.windsor import fetch_windsor_ad_data
+from db import upsert_funnel_snapshot, log_sync
 from services.kommo import fetch_kommo_funnel_snapshot
 from services.rdstation import fetch_rdstation_funnel_snapshot
-# from services.google_ads import fetch_google_ads_data  # só descomente se não usar Windsor pro Google
+# Windsor NÃO entra aqui: ele já grava direto nas tabelas meta_ads/google_ads
+# do Supabase do Dashboard-main, sem precisar desse ETL. Esse script cuida só
+# do que o Windsor não faz — funil de CRM (Kommo e RD Station).
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 log = logging.getLogger("etl")
@@ -16,10 +17,8 @@ def run_sync():
     log.info("Iniciando sync do dia %s", today)
 
     jobs = {
-        "windsor": lambda: upsert_ad_performance(fetch_windsor_ad_data(today, today)),
         "kommo": lambda: upsert_funnel_snapshot(fetch_kommo_funnel_snapshot(today)),
         "rdstation": lambda: upsert_funnel_snapshot(fetch_rdstation_funnel_snapshot(today)),
-        # "google": lambda: upsert_ad_performance(fetch_google_ads_data(today, today)),
     }
 
     for name, job in jobs.items():

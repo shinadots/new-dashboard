@@ -17,7 +17,9 @@ def get_conn():
         conn.close()
 
 
-def upsert_ad_performance(rows: list[dict]) -> int:
+def _unused_upsert_ad_performance(rows: list[dict]) -> int:
+    # Não é mais usada: o Windsor já grava direto em meta_ads/google_ads.
+    # Deixei aqui só de referência, caso um dia precise voltar a fazer isso via Python.
     if not rows:
         return 0
     with get_conn() as conn:

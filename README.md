@@ -1,8 +1,11 @@
-# ETL em Python (substitui o workflow n8n)
+# ETL em Python — funil de CRM pro Dashboard-main
 
-Mesma lógica do backend Next.js, só que a extração roda aqui em vez de no n8n.
-Grava nas mesmas tabelas (`ad_performance`, `crm_funnel_snapshot`) — o backend
-Next.js e o frontend não mudam nada.
+Esse script cuida só do que falta no Supabase do **Dashboard-main**: o funil de
+CRM (Kommo + RD Station). Anúncios (`meta_ads`, `google_ads`) já são gravados
+direto pelo Windsor — esse ETL não mexe nisso.
+
+Grava numa tabela nova, `crm_funnel_snapshot`, no mesmo Supabase do
+Dashboard-main (ver `schema.sql`).
 
 ## Setup
 ```bash
@@ -11,15 +14,17 @@ source venv/bin/activate
 pip install -r requirements.txt
 ```
 
-Crie um `.env` com as mesmas variáveis do backend Next.js:
+Crie um `.env`:
 ```
-DATABASE_URL=
-WINDSOR_API_KEY=
+DATABASE_URL=          # connection string do Supabase do Dashboard-main
+                        # (Project Settings → Database → Connection string, modo "URI")
 KOMMO_DOMAIN=
 KOMMO_ACCESS_TOKEN=
 RD_CRM_TOKEN=
-# GOOGLE_ADS_* — só se for usar services/google_ads.py
 ```
+
+Rode o `schema.sql` no SQL Editor do Supabase (cria `crm_funnel_snapshot`,
+`sync_log` e os índices de performance nas tabelas de ads existentes).
 
 Teste rodando uma vez:
 ```bash
@@ -58,8 +63,8 @@ o próprio GitHub dispara o job. Passo a passo:
 
 1. Suba este projeto pra um repositório no GitHub (pode ser privado).
 2. Em **Settings → Secrets and variables → Actions → New repository secret**,
-   cadastre cada uma das variáveis do `.env` (`DATABASE_URL`, `WINDSOR_API_KEY`,
-   `KOMMO_DOMAIN`, `KOMMO_ACCESS_TOKEN`, `RD_CRM_TOKEN`).
+   cadastre cada uma das variáveis do `.env` (`DATABASE_URL`, `KOMMO_DOMAIN`,
+   `KOMMO_ACCESS_TOKEN`, `RD_CRM_TOKEN`).
 3. Pronto — o workflow já roda sozinho às 8h. Pra testar sem esperar o horário,
    vá na aba **Actions → Sync diário do dashboard → Run workflow**.
 
