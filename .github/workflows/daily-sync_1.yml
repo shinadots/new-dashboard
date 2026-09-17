@@ -1,0 +1,29 @@
+name: Sync diário do dashboard
+
+on:
+  schedule:
+    # 11:00 UTC = 08:00 America/Sao_Paulo (UTC-3, sem horário de verão hoje em dia)
+    - cron: "0 11 * * *"
+  workflow_dispatch: {}  # permite rodar manualmente pela aba Actions, pra testar
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Instalar dependências
+        run: pip install -r requirements.txt
+
+      - name: Rodar ETL
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          WINDSOR_API_KEY: ${{ secrets.WINDSOR_API_KEY }}
+          KOMMO_DOMAIN: ${{ secrets.KOMMO_DOMAIN }}
+          KOMMO_ACCESS_TOKEN: ${{ secrets.KOMMO_ACCESS_TOKEN }}
+          RD_CRM_TOKEN: ${{ secrets.RD_CRM_TOKEN }}
+        run: python main.py
