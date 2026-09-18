@@ -2,4 +2,4 @@ requests==2.32.3
 psycopg2-binary==2.9.9
 python-dotenv==1.0.1
 APScheduler==3.10.4
-# google-ads==25.1.0  # só se voltar a usar services/google_ads.py (Windsor já cobre isso hoje)
+google-ads>=32.0.0
