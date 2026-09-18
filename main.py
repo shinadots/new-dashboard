@@ -1,46 +1,32 @@
-import logging
-from datetime import date as date_cls
+name: Sync diário do dashboard
 
-from db import upsert_funnel_snapshot, upsert_google_ads, get_google_ads_customer_ids, log_sync
-from services.kommo import fetch_kommo_funnel_snapshot
-from services.rdstation import fetch_rdstation_funnel_snapshot
-from services.google_ads import fetch_google_ads_data
-# Windsor NÃO entra aqui: ele já grava direto na tabela meta_ads do Supabase
-# do Dashboard-main. Esse script cuida do que falta — funil de CRM (Kommo e
-# RD Station) e Google Ads (via API oficial, sem passar pelo Windsor).
+on:
+  schedule:
+    # 11:00 UTC = 08:00 America/Sao_Paulo (UTC-3, sem horário de verão hoje em dia)
+    - cron: "0 11 * * *"
+  workflow_dispatch: {}  # permite rodar manualmente pela aba Actions, pra testar
 
-logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
-log = logging.getLogger("etl")
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
 
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
 
-def _sync_google_ads(today: str) -> int:
-    customer_ids = get_google_ads_customer_ids()
-    if not customer_ids:
-        log.warning("Nenhum conta_google_id encontrado em clientes_config — nada a sincronizar")
-        return 0
-    rows = fetch_google_ads_data(customer_ids, today, today)
-    return upsert_google_ads(rows)
+      - name: Instalar dependências
+        run: pip install -r requirements.txt
 
-
-def run_sync():
-    today = date_cls.today().isoformat()
-    log.info("Iniciando sync do dia %s", today)
-
-    jobs = {
-        "kommo": lambda: upsert_funnel_snapshot(fetch_kommo_funnel_snapshot(today)),
-        "rdstation": lambda: upsert_funnel_snapshot(fetch_rdstation_funnel_snapshot(today)),
-        "google_ads": lambda: _sync_google_ads(today),
-    }
-
-    for name, job in jobs.items():
-        try:
-            rows = job()
-            log.info("%s: %s linhas gravadas", name, rows)
-            log_sync(name, "success", f"{rows} linhas")
-        except Exception as e:
-            log.exception("%s falhou", name)
-            log_sync(name, "error", str(e))
-
-
-if __name__ == "__main__":
-    run_sync()
+      - name: Rodar ETL
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          KOMMO_DOMAIN: ${{ secrets.KOMMO_DOMAIN }}
+          KOMMO_ACCESS_TOKEN: ${{ secrets.KOMMO_ACCESS_TOKEN }}
+          RD_CRM_TOKEN: ${{ secrets.RD_CRM_TOKEN }}
+          GOOGLE_ADS_CLIENT_ID: ${{ secrets.GOOGLE_ADS_CLIENT_ID }}
+          GOOGLE_ADS_CLIENT_SECRET: ${{ secrets.GOOGLE_ADS_CLIENT_SECRET }}
+          GOOGLE_ADS_REFRESH_TOKEN: ${{ secrets.GOOGLE_ADS_REFRESH_TOKEN }}
+          GOOGLE_ADS_LOGIN_CUSTOMER_ID: ${{ secrets.GOOGLE_ADS_LOGIN_CUSTOMER_ID }}
+        run: python main.py
