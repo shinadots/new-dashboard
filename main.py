@@ -1,15 +1,25 @@
 import logging
 from datetime import date as date_cls
 
-from db import upsert_funnel_snapshot, log_sync
+from db import upsert_funnel_snapshot, upsert_google_ads, get_google_ads_customer_ids, log_sync
 from services.kommo import fetch_kommo_funnel_snapshot
 from services.rdstation import fetch_rdstation_funnel_snapshot
-# Windsor NÃO entra aqui: ele já grava direto nas tabelas meta_ads/google_ads
-# do Supabase do Dashboard-main, sem precisar desse ETL. Esse script cuida só
-# do que o Windsor não faz — funil de CRM (Kommo e RD Station).
+from services.google_ads import fetch_google_ads_data
+# Windsor NÃO entra aqui: ele já grava direto na tabela meta_ads do Supabase
+# do Dashboard-main. Esse script cuida do que falta — funil de CRM (Kommo e
+# RD Station) e Google Ads (via API oficial, sem passar pelo Windsor).
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 log = logging.getLogger("etl")
+
+
+def _sync_google_ads(today: str) -> int:
+    customer_ids = get_google_ads_customer_ids()
+    if not customer_ids:
+        log.warning("Nenhum conta_google_id encontrado em clientes_config — nada a sincronizar")
+        return 0
+    rows = fetch_google_ads_data(customer_ids, today, today)
+    return upsert_google_ads(rows)
 
 
 def run_sync():
@@ -19,6 +29,7 @@ def run_sync():
     jobs = {
         "kommo": lambda: upsert_funnel_snapshot(fetch_kommo_funnel_snapshot(today)),
         "rdstation": lambda: upsert_funnel_snapshot(fetch_rdstation_funnel_snapshot(today)),
+        "google_ads": lambda: _sync_google_ads(today),
     }
 
     for name, job in jobs.items():
