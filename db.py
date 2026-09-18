@@ -94,6 +94,7 @@ def upsert_google_ads(rows: list[dict]) -> int:
 
 
 def upsert_funnel_snapshot(rows: list[dict]) -> int:
+    # Mantida só de referência — o ETL não escreve mais aqui (ver upsert_crm_leads).
     if not rows:
         return 0
     with get_conn() as conn:
@@ -117,6 +118,39 @@ def upsert_funnel_snapshot(rows: list[dict]) -> int:
                         r["crm"], r["pipeline_id"], r.get("pipeline_name"), r["status_id"],
                         r.get("status_name"), r.get("lead_count", 0), r.get("deal_value", 0),
                         r["date"], psycopg2.extras.Json(r.get("raw", {})),
+                    )
+                    for r in rows
+                ],
+                template="(%s,%s,%s,%s,%s,%s,%s,%s,%s)",
+            )
+    return len(rows)
+
+
+def upsert_crm_leads(rows: list[dict]) -> int:
+    if not rows:
+        return 0
+    with get_conn() as conn:
+        with conn.cursor() as cur:
+            psycopg2.extras.execute_values(
+                cur,
+                """
+                INSERT INTO crm_leads
+                    (crm, lead_id, pipeline_id, pipeline_name, status_id, status_name, price, created_at, updated_at)
+                VALUES %s
+                ON CONFLICT (crm, lead_id) DO UPDATE SET
+                    pipeline_id = EXCLUDED.pipeline_id,
+                    pipeline_name = EXCLUDED.pipeline_name,
+                    status_id = EXCLUDED.status_id,
+                    status_name = EXCLUDED.status_name,
+                    price = EXCLUDED.price,
+                    updated_at = EXCLUDED.updated_at,
+                    synced_at = now()
+                """,
+                [
+                    (
+                        r["crm"], r["lead_id"], r.get("pipeline_id"), r.get("pipeline_name"),
+                        r.get("status_id"), r.get("status_name"), r.get("price", 0),
+                        r.get("created_at"), r.get("updated_at"),
                     )
                     for r in rows
                 ],
