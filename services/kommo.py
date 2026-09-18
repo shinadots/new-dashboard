@@ -28,7 +28,7 @@ EXCLUDED_PIPELINE_NAMES = {
     "quintal brincante"
 }
 
-# Só busca leads tocados nos últimos N dias — cobre com folga os presets do
+# Só busca leads tocados nos últimos N dias —  cobre com folga os presets do
 # front (1D/7D/14D) e a maioria dos ranges customizados sem trazer o
 # histórico inteiro. Um lead criado há muito tempo e nunca mais atualizado
 # não entra aqui (mas também não seria relevante pra nenhum período recente).
