@@ -18,8 +18,7 @@ def get_conn():
 
 
 def _unused_upsert_ad_performance(rows: list[dict]) -> int:
-    # Não é mais usada: o Windsor já grava direto em meta_ads/google_ads.
-    # Deixei aqui só de referência, caso um dia precise voltar a fazer isso via Python.
+    # Não é mais usada, deixei só de referência de padrão de upsert.
     if not rows:
         return 0
     with get_conn() as conn:
@@ -48,6 +47,48 @@ def _unused_upsert_ad_performance(rows: list[dict]) -> int:
                     for r in rows
                 ],
                 template="(%s,%s,%s,%s,%s,%s,%s,%s,%s)",
+            )
+    return len(rows)
+
+
+def get_google_ads_customer_ids() -> list[str]:
+    """IDs de conta do Google Ads de cada cliente, vindos do clientes_config
+    (mesma tabela que já usamos pra Gestor/Squad/meta de CPL)."""
+    with get_conn() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                "SELECT conta_google_id FROM clientes_config "
+                "WHERE conta_google_id IS NOT NULL AND conta_google_id <> ''"
+            )
+            return [row[0] for row in cur.fetchall()]
+
+
+def upsert_google_ads(rows: list[dict]) -> int:
+    if not rows:
+        return 0
+    with get_conn() as conn:
+        with conn.cursor() as cur:
+            psycopg2.extras.execute_values(
+                cur,
+                """
+                INSERT INTO google_ads
+                    (date, account_id, account_name, campaign, clicks, spend, conversions)
+                VALUES %s
+                ON CONFLICT (date, account_id, campaign) DO UPDATE SET
+                    account_name = EXCLUDED.account_name,
+                    clicks = EXCLUDED.clicks,
+                    spend = EXCLUDED.spend,
+                    conversions = EXCLUDED.conversions,
+                    synced_at = now()
+                """,
+                [
+                    (
+                        r["date"], r["account_id"], r.get("account_name"), r["campaign"],
+                        r.get("clicks", 0), r.get("spend", 0), r.get("conversions", 0),
+                    )
+                    for r in rows
+                ],
+                template="(%s,%s,%s,%s,%s,%s,%s)",
             )
     return len(rows)
 
