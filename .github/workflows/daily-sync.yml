@@ -22,8 +22,11 @@ jobs:
       - name: Rodar ETL
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
-          WINDSOR_API_KEY: ${{ secrets.WINDSOR_API_KEY }}
           KOMMO_DOMAIN: ${{ secrets.KOMMO_DOMAIN }}
           KOMMO_ACCESS_TOKEN: ${{ secrets.KOMMO_ACCESS_TOKEN }}
           RD_CRM_TOKEN: ${{ secrets.RD_CRM_TOKEN }}
+          GOOGLE_ADS_CLIENT_ID: ${{ secrets.GOOGLE_ADS_CLIENT_ID }}
+          GOOGLE_ADS_CLIENT_SECRET: ${{ secrets.GOOGLE_ADS_CLIENT_SECRET }}
+          GOOGLE_ADS_REFRESH_TOKEN: ${{ secrets.GOOGLE_ADS_REFRESH_TOKEN }}
+          GOOGLE_ADS_LOGIN_CUSTOMER_ID: ${{ secrets.GOOGLE_ADS_LOGIN_CUSTOMER_ID }}
         run: python main.py
