@@ -22,6 +22,10 @@ EXCLUDED_PIPELINE_NAMES = {
     "coxinha no pote",
     "pastel 365",
     "lead scale (geral)",
+    "whats pedro (não utilizar)",
+    "af seguros",
+    "spirito santo multimarcas",
+    "quintal brincante"
 }
 
 # Só busca leads tocados nos últimos N dias — cobre com folga os presets do
