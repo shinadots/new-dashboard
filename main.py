@@ -1,13 +1,14 @@
 import logging
 from datetime import date as date_cls
 
-from db import upsert_funnel_snapshot, upsert_google_ads, get_google_ads_customer_ids, log_sync
-from services.kommo import fetch_kommo_funnel_snapshot
-from services.rdstation import fetch_rdstation_funnel_snapshot
+from db import upsert_google_ads, upsert_crm_leads, get_google_ads_customer_ids, log_sync
+from services.kommo import fetch_kommo_leads
+from services.rdstation import fetch_rdstation_leads
 from services.google_ads import fetch_google_ads_data
 # Windsor NÃO entra aqui: ele já grava direto na tabela meta_ads do Supabase
 # do Dashboard-main. Esse script cuida do que falta — funil de CRM (Kommo e
-# RD Station) e Google Ads (via API oficial, sem passar pelo Windsor).
+# RD Station, lead a lead, com created_at/updated_at pra filtro de período no
+# front) e Google Ads (via API oficial, sem passar pelo Windsor).
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 log = logging.getLogger("etl")
@@ -27,8 +28,8 @@ def run_sync():
     log.info("Iniciando sync do dia %s", today)
 
     jobs = {
-        "kommo": lambda: upsert_funnel_snapshot(fetch_kommo_funnel_snapshot(today)),
-        "rdstation": lambda: upsert_funnel_snapshot(fetch_rdstation_funnel_snapshot(today)),
+        "kommo": lambda: upsert_crm_leads(fetch_kommo_leads()),
+        "rdstation": lambda: upsert_crm_leads(fetch_rdstation_leads()),
         "google_ads": lambda: _sync_google_ads(today),
     }
 
