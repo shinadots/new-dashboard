@@ -3,6 +3,33 @@ from config import KOMMO_DOMAIN, KOMMO_ACCESS_TOKEN
 
 BASE_URL = f"https://{KOMMO_DOMAIN}/api/v4"
 HEADERS = {"Authorization": f"Bearer {KOMMO_ACCESS_TOKEN}"}
+PAGE_SIZE = 250
+
+
+def _fetch_all_leads(pipeline_id: int) -> list[dict]:
+    """Pagina até acabar os leads do pipeline — sem isso, qualquer pipeline
+    com mais de 250 leads era cortado na primeira página."""
+    leads = []
+    page = 1
+    while True:
+        res = requests.get(
+            f"{BASE_URL}/leads",
+            headers=HEADERS,
+            params={"filter[pipeline_id]": pipeline_id, "limit": PAGE_SIZE, "page": page},
+            timeout=60,
+        )
+        if res.status_code == 204:  # Kommo devolve 204 quando a página está vazia
+            break
+        if not res.ok:
+            break
+        batch = res.json().get("_embedded", {}).get("leads", [])
+        if not batch:
+            break
+        leads.extend(batch)
+        if len(batch) < PAGE_SIZE:
+            break
+        page += 1
+    return leads
 
 
 def fetch_kommo_funnel_snapshot(date: str) -> list[dict]:
@@ -13,15 +40,10 @@ def fetch_kommo_funnel_snapshot(date: str) -> list[dict]:
     rows = []
 
     for pipeline in pipelines:
-        leads_res = requests.get(
-            f"{BASE_URL}/leads",
-            headers=HEADERS,
-            params={"filter[pipeline_id]": pipeline["id"], "limit": 250},
-            timeout=60,
-        )
-        if not leads_res.ok:
+        if pipeline.get("is_archive"):
             continue
-        leads = leads_res.json().get("_embedded", {}).get("leads", [])
+
+        leads = _fetch_all_leads(pipeline["id"])
 
         # agrupa por status_id, igual a agregação atual do workflow n8n
         by_status: dict[int, dict] = {}
