@@ -11,7 +11,7 @@ scheduler = BlockingScheduler(timezone="America/Sao_Paulo")
 
 scheduler.add_job(
     run_sync,
-    trigger=CronTrigger(hour=8, minute=0),
+    trigger=CronTrigger(hour=5, minute=0),
     id="daily_dashboard_sync",
     misfire_grace_time=3600,  # roda mesmo se o processo estava fora do ar até 1h depois das 8h
 )
