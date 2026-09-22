@@ -1,5 +1,5 @@
 import logging
-from datetime import date as date_cls
+from datetime import date as date_cls, timedelta
 
 from db import upsert_google_ads, upsert_crm_leads, get_google_ads_customer_ids, log_sync
 from services.kommo import fetch_kommo_leads
@@ -13,19 +13,28 @@ from services.google_ads import fetch_google_ads_data
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 log = logging.getLogger("etl")
 
+# Conversões do Google Ads têm atraso de atribuição — um lead pode ser
+# atribuído a um clique de vários dias atrás, e o número final de conversões
+# só se estabiliza depois de alguns dias. Por isso, todo sync re-busca os
+# últimos N dias (não só "hoje") e faz upsert por cima — isso corrige gasto e
+# leads de dias recentes que já tinham sido gravados com valor desatualizado.
+GOOGLE_ADS_ROLLING_WINDOW_DAYS = 14
 
-def _sync_google_ads(today: str) -> int:
+
+def _sync_google_ads(today: date_cls) -> int:
     customer_ids = get_google_ads_customer_ids()
     if not customer_ids:
         log.warning("Nenhum conta_google_id encontrado em clientes_config — nada a sincronizar")
         return 0
-    rows = fetch_google_ads_data(customer_ids, today, today)
+    date_from = (today - timedelta(days=GOOGLE_ADS_ROLLING_WINDOW_DAYS - 1)).isoformat()
+    date_to = today.isoformat()
+    rows = fetch_google_ads_data(customer_ids, date_from, date_to)
     return upsert_google_ads(rows)
 
 
 def run_sync():
-    today = date_cls.today().isoformat()
-    log.info("Iniciando sync do dia %s", today)
+    today = date_cls.today()
+    log.info("Iniciando sync do dia %s", today.isoformat())
 
     jobs = {
         "kommo": lambda: upsert_crm_leads(fetch_kommo_leads()),
