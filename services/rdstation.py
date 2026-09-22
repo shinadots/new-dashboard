@@ -9,7 +9,13 @@ BASE_URL = "https://crm.rdstation.com/api/v1"
 def _fetch_pipelines(token: str) -> list[dict]:
     res = requests.get(f"{BASE_URL}/deal_pipelines", params={"token": token}, timeout=60)
     res.raise_for_status()
-    return res.json().get("deal_pipelines", [])
+    data = res.json()
+    # A API devolve uma lista direta ([{...}, {...}]), não um objeto
+    # {"deal_pipelines": [...]} como a doc antiga sugeria — aceita os dois
+    # formatos pra não quebrar se algum outro endpoint vier diferente.
+    if isinstance(data, list):
+        return data
+    return data.get("deal_pipelines", [])
 
 
 def _fetch_deals(token: str, pipeline_id: str) -> list[dict]:
@@ -24,7 +30,8 @@ def _fetch_deals(token: str, pipeline_id: str) -> list[dict]:
         )
         if not res.ok:
             break
-        batch = res.json().get("deals", [])
+        data = res.json()
+        batch = data if isinstance(data, list) else data.get("deals", [])
         deals.extend(batch)
         has_more = len(batch) == 200
         page += 1
