@@ -51,6 +51,18 @@ def _unused_upsert_ad_performance(rows: list[dict]) -> int:
     return len(rows)
 
 
+def get_rd_config() -> list[dict]:
+    """Config de acesso ao RD Station: cliente, token e (opcional) funil
+    específico. Só o ETL lê essa tabela — não é exposta pro front."""
+    with get_conn() as conn:
+        with conn.cursor() as cur:
+            cur.execute("SELECT cliente, token, funil FROM rd_config")
+            return [
+                {"cliente": row[0], "token": row[1], "funil": row[2]}
+                for row in cur.fetchall()
+            ]
+
+
 def get_google_ads_customer_ids() -> list[str]:
     """IDs de conta do Google Ads de cada cliente, vindos do clientes_config
     (mesma tabela que já usamos pra Gestor/Squad/meta de CPL)."""
