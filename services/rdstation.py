@@ -6,6 +6,12 @@ from db import get_rd_config
 BASE_URL = "https://crm.rdstation.com/api/v1"
 
 
+def _oid(obj: dict) -> str | None:
+    """RD usa 'id' em alguns endpoints e '_id' em outros (doc antiga não
+    bate com o comportamento real) — aceita qualquer um dos dois."""
+    return obj.get("id") or obj.get("_id")
+
+
 def _fetch_pipelines(token: str) -> list[dict]:
     res = requests.get(f"{BASE_URL}/deal_pipelines", params={"token": token}, timeout=60)
     res.raise_for_status()
@@ -70,20 +76,29 @@ def fetch_rdstation_leads() -> list[dict]:
             alvo = pipelines  # funil não especificado = todos os funis dessa conta
 
         for pipeline in alvo:
+            pipeline_id = _oid(pipeline)
+            if not pipeline_id:
+                print(f"[rdstation] pipeline de {cliente}/{pipeline.get('name')} sem id, pulando")
+                continue
             try:
-                deals = _fetch_deals(token, pipeline["_id"])
+                deals = _fetch_deals(token, pipeline_id)
             except Exception as e:
                 print(f"[rdstation] falhou ao buscar deals de {cliente}/{pipeline.get('name')}: {e}")
                 continue
 
             for deal in deals:
+                deal_id = _oid(deal)
+                if not deal_id:
+                    continue
+                deal_stage = deal.get("deal_stage") or {}
+                status_id = _oid(deal_stage) or deal.get("deal_stage_id")
                 rows.append({
                     "crm": "rdstation",
-                    "lead_id": deal["_id"],
-                    "pipeline_id": pipeline["_id"],
+                    "lead_id": deal_id,
+                    "pipeline_id": pipeline_id,
                     "pipeline_name": cliente,  # ← nome do cliente, não do funil
-                    "status_id": deal["deal_stage_id"],
-                    "status_name": deal.get("deal_stage", {}).get("name"),
+                    "status_id": status_id,
+                    "status_name": deal_stage.get("name"),
                     "price": deal.get("amount_total") or 0,
                     "created_at": deal.get("created_at"),
                     "updated_at": deal.get("updated_at"),
