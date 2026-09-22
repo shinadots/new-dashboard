@@ -2,8 +2,11 @@ name: Sync diário do dashboard
 
 on:
   schedule:
-    # 11:00 UTC = 08:00 America/Sao_Paulo (UTC-3, sem horário de verão hoje em dia)
-    - cron: "0 11 * * *"
+    # A cada 4h (0h, 4h, 8h, 12h, 16h, 20h UTC = 21h, 1h, 5h, 9h, 13h, 17h BRT)
+    # — sync mais frequente ajuda a fechar mais rápido o atraso de
+    # processamento do Google Ads nos dias recentes, já que cada rodada
+    # rebusca os últimos 14 dias e sobrescreve com o valor mais atual.
+    - cron: "0 */4 * * *"
   workflow_dispatch: {}  # permite rodar manualmente pela aba Actions, pra testar
 
 jobs:
