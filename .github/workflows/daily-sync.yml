@@ -2,11 +2,10 @@ name: Sync diário do dashboard
 
 on:
   schedule:
-    # A cada 4h (0h, 4h, 8h, 12h, 16h, 20h UTC = 21h, 1h, 5h, 9h, 13h, 17h BRT)
-    # — sync mais frequente ajuda a fechar mais rápido o atraso de
-    # processamento do Google Ads nos dias recentes, já que cada rodada
-    # rebusca os últimos 14 dias e sobrescreve com o valor mais atual.
-    - cron: "0 */4 * * *"
+    # Minuto 17 (não 0!) — o GitHub avisa que rodar exatamente no início da
+    # hora é quando mais atraso/perda de execução agendada acontece, porque
+    # todo mundo agenda pro minuto 0. Rodando no :17 foge desse pico.
+    - cron: "17 */4 * * *"
   workflow_dispatch: {}  # permite rodar manualmente pela aba Actions, pra testar
 
 jobs:
